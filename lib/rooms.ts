@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { apply, newRoom, visible, type Room } from "./game";
+import { apply, newRoom, newMember, upgradeRoom, visible, type Room } from "./game";
 function db(){if(!env.DB)throw new Error("The mission service is temporarily unavailable. Please try again.");return env.DB;}
 export function reply(value:unknown,status=200){return Response.json(value,{status,headers:{"Cache-Control":"no-store"}});}
 export function cleanName(value:unknown){return typeof value==="string"?value.trim().replace(/[\u0000-\u001f]/g,"").slice(0,24)||"Nova":"Nova";}
@@ -15,20 +15,20 @@ export async function create(name:unknown){
 export async function getRoom(code:string,token:string){
   const row=await db().prepare("SELECT state,version,updated_at FROM rooms WHERE code=?").bind(code).first<{state:string;version:number;updated_at:number}>();
   if(!row||Date.now()-row.updated_at>7*86400000)throw new Error("That room was not found or has expired. Check the six-character room code.");
-  const room=JSON.parse(row.state) as Room;if(!room.members.some(m=>m.token===token))throw new Error("Your session has ended. Join the room again.");
+  const room=upgradeRoom(JSON.parse(row.state) as Room);if(!room.members.some(m=>m.token===token))throw new Error("Your session has ended. Join the room again.");
   return visible(room,row.version);
 }
 export async function mutate(code:string,token:string,body:Record<string,unknown>){
   for(let retry=0;retry<8;retry++){
     const row=await db().prepare("SELECT state,version,updated_at FROM rooms WHERE code=?").bind(code).first<{state:string;version:number;updated_at:number}>();
     if(!row||Date.now()-row.updated_at>7*86400000)throw new Error("That room was not found or has expired. Check the six-character room code.");
-    const room=JSON.parse(row.state) as Room;let joined=null;
+    const room=upgradeRoom(JSON.parse(row.state) as Room);let joined=null;
     if(body.op==="join"){
       const existing=room.members.find(m=>m.token===token);
       if(existing)return {room:visible(room,row.version),memberId:existing.id,token:existing.token};
       if(room.phase!=="lobby")throw new Error("This mission has already launched. Ask the captain to finish and return to the waiting room.");
       if(room.members.length>=6)throw new Error("This crew is full. Each ship has room for six players.");
-      joined={id:crypto.randomUUID(),token:crypto.randomUUID(),name:cleanName(body.name),action:null,signal:null};room.members.push(joined);
+      joined=newMember(cleanName(body.name),room.members.length);room.members.push(joined);
     }else{const actor=room.members.find(m=>m.token===token);if(!actor)throw new Error("Your session has ended. Join the room again.");apply(room,actor.id,body);}
     const result=await db().prepare("UPDATE rooms SET state=?,version=version+1,updated_at=? WHERE code=? AND version=?").bind(JSON.stringify(room),Date.now(),code,row.version).run();
     if(result.meta.changes)return {room:visible(room,row.version+1),...(joined?{memberId:joined.id,token:joined.token}:{})};

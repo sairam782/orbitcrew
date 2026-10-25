@@ -1,30 +1,37 @@
-# Orbit Crew
+# Orbit Crew · Beyond the last lighthouse
 
-A cooperative space rescue game designed around disabled players. One to six people choose untimed actions, coordinate with preset signals, and finish a five-sector mission together.
+A cooperative space adventure designed around disabled players. One to six crew members follow distress signals, solve shared relay puzzles, and bring stranded travelers home across four jumps.
+
+## Play
+
+1. Create a crew, invite friends by room code or link, and choose a specialty: Pilot, Engineer, or Signal analyst. Every role can solve every puzzle.
+2. Vote for a destination. Routes show traveler count, crossing damage, and energy cost. Majority wins; the captain breaks ties.
+3. Rotate relays to connect the ship entry to the shuttle exit. Everyone shares one persistent board. Keyboard arrows move between relays; Enter or Space turns a relay. Left and Right controls turn the focused relay in either direction.
+4. Use free hints or one of your two specialist tool uses. Pilot shields absorb damage; Engineer bridges align two relays; Analyst tools recover energy and show a clue.
+5. When the connection is complete, everyone confirms the rescue. A board change clears all confirmations so nobody launches an outdated plan.
+6. The crossing consumes energy and hull. Each missing energy unit costs eight additional hull. Vote for one of two persistent upgrades after each of the first three rescues.
+7. Reach home after four rescues with hull remaining and at least ten travelers in Calm voyage or twelve in Expedition. Replay for different routes, boards, tools, upgrades, and endings.
 
 ## Development
 
-Use Node 22.13 or newer. Run `npm run install:ci`, `npm run db:generate` only for schema changes, and `npm run build`. Apply the initial local migration using the D1 command in the Sites starter documentation, then run `npm run dev`. The development server defaults to http://127.0.0.1:5173.
+Use Node 22.13 or newer. Install with `npm run install:ci`, build with `npm run build`, and start the preview with `npm run dev`. The local URL defaults to http://127.0.0.1:5173.
 
-The application uses Vinext, React, and Cloudflare D1. Rooms persist server-side. Polling every two seconds synchronizes clients. Compare-and-swap writes protect simultaneous joins and actions. Every room member has a separate secret token kept in tab session storage. Room codes allow joining in the lobby; no in-game accounts are required. Room data expires after seven days of inactivity.
+The application uses Vinext, React, and Cloudflare D1. Apply `drizzle/0000_bent_silver_surfer.sql` to the local D1 database before first use. The local database in this project has already been initialized. Generate new migrations only when the schema changes.
+
+Rooms persist server-side; polling synchronizes players. Compare-and-swap database writes protect concurrent joins and moves. Each member has a secret session token. Public puzzle data omits solution orientations and the intended solution path. Existing version-one rooms safely return to the lobby on upgrade while retaining membership. Room sessions expire after seven days of inactivity.
 
 ## Checks
 
-- `node tests/game-checks.mjs`: mission rules, pauses, round boundaries, token privacy, departure, solo victory, replay, and low energy.
-- `node tests/api-checks.mjs`: run against a local server; exercises concurrent joins, capacity, simultaneous moves, persistence, and full six-player victory.
-- `npx tsc --noEmit`: TypeScript validation.
+- `node tests/game-checks.mjs`: generated board solvability, private solutions, votes, pauses, tool limits, changing confirmations, upgrades, full solo and six-player adventures, replay, and old-room migration.
+- `node tests/api-checks.mjs`: with the local server running, exercises real concurrent joins and moves, puzzle solving through public hints, all four rescues, upgrades, victory, persistence, and replay.
+- `npx tsc --noEmit`: TypeScript checks.
 
-## Accessibility design
+## Access features
 
-- All gameplay information is available as text; decorative SVGs are hidden from assistive technology.
-- Keyboard operation, named controls, native modal dialogs, focus management, and polite mission announcements.
-- Three text sizes, higher contrast, simpler presentation, optional spoken mission updates, and Space-key single-switch scanning with four speeds. Escape stops scanning.
-- Invite links avoid manual room-code entry; preset callsigns and crew messages avoid mandatory typing or speaking.
-- No round timers, flashing effects, background animation, dragging, held buttons, or required rapid input.
-- Calm and expedition modes, solo practice, crew pause/resume, persistent mission logs, and repeatable missions.
+Untimed play, no move limits, free hints, shared clues, named keyboard controls, direction descriptions on every relay, persistent mission text, native modal dialogs, focus management, and live status announcements. Each device has three text sizes, higher contrast, a simpler view, optional spoken updates, and Space-key single-switch scanning with four speeds. Escape stops scanning. All important information is available as text; voice and precise pointer movement are optional. Invitation links and preset crew signals avoid required typing. Anyone can pause.
 
-These are implemented access features, not a claim of universal accessibility. Testing with disabled players using their usual assistive technology remains part of validating the game.
+These features still need playtesting with disabled players using their usual assistive technology. No particular role requires a specific input method or sensory ability.
 
 ## Hosting
 
-`.openai/hosting.json` identifies the Site and its D1 binding. Publish through the Sites source workflow. The initial hosted version is owner-private. The game is ready for anonymous room-based play once the Site audience is changed to public by the owner.
+`.openai/hosting.json` preserves the existing Site identity and D1 binding. The hosted review version remains owner-private. Use the Sites source workflow to publish updates; the separate project Git history remains in this folder.

@@ -1,0 +1,3 @@
+import { getRoom, mutate, reply, checkOrigin, tokenOf } from "@/lib/rooms";
+export async function GET(request:Request,{params}:{params:Promise<{code:string}>}){try{const {code}=await params;return reply({room:await getRoom(code.toUpperCase(),tokenOf(request))});}catch(e){return reply({error:e instanceof Error?e.message:"Could not load the room."},400);}}
+export async function POST(request:Request,{params}:{params:Promise<{code:string}>}){try{checkOrigin(request);const {code}=await params;return reply(await mutate(code.toUpperCase(),tokenOf(request),await request.json()));}catch(e){return reply({error:e instanceof Error?e.message:"Could not update the room."},400);}}
